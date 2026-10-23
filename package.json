@@ -1,0 +1,25 @@
+{
+  "name": "deskbox",
+  "version": "1.0.0",
+  "description": "Lightweight Rambox alternative for Ubuntu with Gmail, Calendar, WhatsApp and Telegram",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [
+    "rambox",
+    "electron",
+    "whatsapp",
+    "telegram",
+    "gmail",
+    "calendar"
+  ],
+  "author": "Deskbox",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}

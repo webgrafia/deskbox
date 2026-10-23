@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" x="4" y="4" rx="28" fill="url(#grad)" />
+  <!-- Left sidebar illusion -->
+  <rect width="28" height="100" x="14" y="14" rx="8" fill="rgba(255,255,255,0.18)" />
+  <!-- Dots inside sidebar -->
+  <circle cx="28" cy="30" r="6" fill="#38bdf8" />
+  <circle cx="28" cy="50" r="6" fill="#4ade80" />
+  <circle cx="28" cy="70" r="6" fill="#fbbf24" />
+  <circle cx="28" cy="90" r="6" fill="#f87171" />
+  <!-- Main content cards -->
+  <rect width="66" height="44" x="48" y="18" rx="8" fill="rgba(255,255,255,0.92)" />
+  <rect width="66" height="44" x="48" y="68" rx="8" fill="rgba(255,255,255,0.85)" />
+  <!-- Mini lines inside cards -->
+  <line x1="56" y1="32" x2="86" y2="32" stroke="#6366f1" stroke-width="4" stroke-linecap="round" />
+  <line x1="56" y1="44" x2="104" y2="44" stroke="#94a3b8" stroke-width="3" stroke-linecap="round" />
+  <line x1="56" y1="82" x2="90" y2="82" stroke="#6366f1" stroke-width="4" stroke-linecap="round" />
+  <line x1="56" y1="94" x2="102" y2="94" stroke="#94a3b8" stroke-width="3" stroke-linecap="round" />
+</svg>

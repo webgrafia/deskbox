@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deskbox</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Left Sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-top">
+        <div class="app-brand" title="Deskbox">
+          <img src="assets/icon.svg" alt="Deskbox" class="brand-icon" />
+        </div>
+        <div class="divider"></div>
+        <nav id="service-list" class="service-nav"></nav>
+      </div>
+
+      <div class="sidebar-bottom">
+        <button id="btn-google-login" class="action-btn google-btn" title="Accesso Google per Gmail e Calendar">
+          <img src="assets/google-g.svg" alt="Google Login" class="google-icon" />
+        </button>
+        <button id="btn-reload" class="action-btn" title="Ricarica servizio attivo (Ctrl+R)">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content: Webview Views -->
+    <main id="webview-container"></main>
+
+    <!-- Google Login Modal -->
+    <div id="modal-google" class="modal-backdrop">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div class="modal-title">
+            <img src="assets/google-g.svg" alt="Google" width="22" height="22" />
+            <span>Accesso a Google (Gmail & Calendar)</span>
+          </div>
+          <button id="modal-close" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">
+            Poiché Google blocca l'inserimento delle credenziali nei browser embedded (Electron), puoi autenticarti in 2 semplici passaggi:
+          </p>
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <strong>Accedi con Firefox</strong>
+              <p>Google supporta nativamente Firefox senza alcun blocco o avviso di sicurezza.</p>
+              <button id="btn-open-firefox" class="btn btn-primary">
+                Apri Firefox su Google
+              </button>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <strong>Sincronizza la sessione in Deskbox</strong>
+              <p>Dopo aver completato il login su Firefox, clicca qui per importare la sessione.</p>
+              <button id="btn-sync-session" class="btn btn-secondary">
+                Sincronizza Sessione
+              </button>
+            </div>
+          </div>
+          <div class="divider-horizontal"></div>
+          <div class="troubleshoot-box">
+            <span>Problemi di cookie o sessione bloccata?</span>
+            <button id="btn-clear-cache" class="btn btn-outline-danger">
+              Svuota Cookie e Cache
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
