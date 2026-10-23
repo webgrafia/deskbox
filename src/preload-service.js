@@ -25,7 +25,7 @@ try {
     };
   }
 } catch (e) {
-  // Silent fail if restricted
+  // Silent fallback
 }
 
 let currentCount = 0;
@@ -80,7 +80,24 @@ function parseUnreadCount() {
     }
   }
 
-  // 4. Gmail specific DOM checks
+  // 4. Android Messages specific DOM checks
+  if (window.location.hostname.includes('messages.google.com')) {
+    const msgBadges = document.querySelectorAll('.unread, [aria-label*="unread"], .badge');
+    let msgCount = 0;
+    msgBadges.forEach((el) => {
+      const num = parseInt(el.textContent.trim(), 10);
+      if (!isNaN(num)) {
+        msgCount += num;
+      } else {
+        msgCount += 1;
+      }
+    });
+    if (msgCount > 0) {
+      count = Math.max(count, msgCount);
+    }
+  }
+
+  // 5. Gmail specific DOM checks
   if (window.location.hostname.includes('mail.google.com')) {
     const gmailUnread = document.querySelector('.bsU');
     if (gmailUnread) {
@@ -110,7 +127,7 @@ window.addEventListener('DOMContentLoaded', () => {
     observer.observe(titleEl, { subtree: true, characterData: true, childList: true });
   }
 
-  // Periodic fallback check (every 3 seconds) for dynamic single page apps
+  // Periodic fallback check (every 3 seconds) for dynamic SPAs
   setInterval(updateBadge, 3000);
   updateBadge();
 });

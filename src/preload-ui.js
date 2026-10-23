@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('deskboxAPI', {
   getServices: () => ipcRenderer.invoke('get-services'),
+  saveServices: (services) => ipcRenderer.invoke('save-services', services),
   openExternal: (url) => ipcRenderer.send('open-external', url),
   updateTotalBadge: (total) => ipcRenderer.send('update-total-badge', total),
   onSwitchService: (callback) => ipcRenderer.on('switch-service', (_event, index) => callback(index)),
@@ -9,5 +10,6 @@ contextBridge.exposeInMainWorld('deskboxAPI', {
   syncGoogleCookies: () => ipcRenderer.invoke('sync-google-cookies'),
   onTriggerSyncGoogle: (callback) => ipcRenderer.on('trigger-sync-google', () => callback()),
   clearCacheCookies: () => ipcRenderer.invoke('clear-cache-cookies'),
-  onCacheCleared: (callback) => ipcRenderer.on('cache-cleared', () => callback())
+  onCacheCleared: (callback) => ipcRenderer.on('cache-cleared', () => callback()),
+  onOpenSettings: (callback) => ipcRenderer.on('open-settings', () => callback())
 });

@@ -3,10 +3,13 @@ const path = require('path');
 const fs = require('fs');
 const { execFile, spawn } = require('child_process');
 
-// Standard Chrome Linux User-Agent (strips all Electron / Deskbox identifiers)
+// Disable automation flags so Google does not detect automated browser
+app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
+
+// Standard Chrome Linux User-Agent
 const CLEAN_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 
-// Allow cross-site storage / third party cookies between Google accounts and Gmail
+// Allow cross-site storage / third-party cookies for Google authentication
 app.commandLine.appendSwitch('disable-features', 'ThirdPartyStoragePartitioning,ThirdPartyCookieDeprecation');
 
 // Set global fallback user agent BEFORE app is ready
@@ -30,14 +33,68 @@ if (!gotTheLock) {
   });
 }
 
-function loadServicesConfig() {
-  const configPath = path.join(__dirname, '..', 'services.json');
+function getDefaultServices() {
+  const defaultPath = path.join(__dirname, '..', 'services.json');
   try {
-    const raw = fs.readFileSync(configPath, 'utf8');
+    const raw = fs.readFileSync(defaultPath, 'utf8');
     return JSON.parse(raw);
   } catch (err) {
-    console.error('Error loading services.json:', err);
+    console.error('Error loading default services.json:', err);
     return [];
+  }
+}
+
+function getUserConfigPath() {
+  return path.join(app.getPath('userData'), 'user-services.json');
+}
+
+function loadServicesConfig() {
+  const userConfigPath = getUserConfigPath();
+  const defaults = getDefaultServices();
+
+  if (!fs.existsSync(userConfigPath)) {
+    try {
+      fs.writeFileSync(userConfigPath, JSON.stringify(defaults, null, 2), 'utf8');
+    } catch (e) {
+      console.warn('Could not initialize user-services.json:', e);
+    }
+    return defaults;
+  }
+
+  try {
+    const raw = fs.readFileSync(userConfigPath, 'utf8');
+    const userServices = JSON.parse(raw);
+
+    // Ensure any new default services (e.g. Antigravity, Messages) are added if missing
+    const userIds = new Set(userServices.map(s => s.id));
+    let hasNew = false;
+    for (const d of defaults) {
+      if (!userIds.has(d.id)) {
+        userServices.push(d);
+        hasNew = true;
+      }
+    }
+    if (hasNew) {
+      fs.writeFileSync(userConfigPath, JSON.stringify(userServices, null, 2), 'utf8');
+    }
+    return userServices;
+  } catch (err) {
+    console.error('Error loading user-services.json, falling back to defaults:', err);
+    return defaults;
+  }
+}
+
+function saveServicesConfig(services) {
+  const userConfigPath = getUserConfigPath();
+  try {
+    fs.writeFileSync(userConfigPath, JSON.stringify(services, null, 2), 'utf8');
+    if (updateTrayBadgeRef) {
+      updateTrayBadgeRef();
+    }
+    return true;
+  } catch (err) {
+    console.error('Error saving user services config:', err);
+    return false;
   }
 }
 
@@ -98,7 +155,7 @@ function createTray() {
   tray.setToolTip('Deskbox');
 
   const updateTrayMenu = (totalBadge = 0) => {
-    const services = loadServicesConfig();
+    const services = loadServicesConfig().filter(s => s.enabled !== false);
     const serviceMenuItems = services.map((s, index) => ({
       label: s.name,
       click: () => {
@@ -110,19 +167,27 @@ function createTray() {
 
     const contextMenu = Menu.buildFromTemplate([
       {
-        label: totalBadge > 0 ? `Deskbox (${totalBadge} non letti)` : 'Deskbox',
+        label: totalBadge > 0 ? `Deskbox (${totalBadge} unread)` : 'Deskbox',
         enabled: false
       },
       { type: 'separator' },
       {
-        label: 'Mostra finestra',
+        label: 'Show Window',
         click: () => {
           mainWindow.show();
           mainWindow.focus();
         }
       },
       {
-        label: 'Sincronizza sessione Google (da Firefox)',
+        label: 'Settings / Manage Services',
+        click: () => {
+          mainWindow.show();
+          mainWindow.focus();
+          mainWindow.webContents.send('open-settings');
+        }
+      },
+      {
+        label: 'Sync Google Session (via Firefox)',
         click: async () => {
           mainWindow.show();
           mainWindow.focus();
@@ -130,7 +195,7 @@ function createTray() {
         }
       },
       {
-        label: 'Svuota Cookie e Cache',
+        label: 'Clear Cache & Cookies',
         click: async () => {
           const sharedSession = session.fromPartition('persist:shared');
           await sharedSession.clearStorageData();
@@ -141,7 +206,7 @@ function createTray() {
       ...serviceMenuItems,
       { type: 'separator' },
       {
-        label: 'Esci da Deskbox',
+        label: 'Quit Deskbox',
         click: () => {
           isQuitting = true;
           app.quit();
@@ -199,6 +264,11 @@ ipcMain.handle('get-services', () => {
   };
 });
 
+ipcMain.handle('save-services', (_event, updatedServices) => {
+  const success = saveServicesConfig(updatedServices);
+  return { success };
+});
+
 ipcMain.on('open-external', (_event, url) => {
   if (url) {
     shell.openExternal(url);
@@ -213,7 +283,7 @@ ipcMain.on('update-total-badge', (_event, total) => {
     updateTrayBadgeRef(total);
   }
   if (tray) {
-    tray.setToolTip(total > 0 ? `Deskbox - ${total} messaggi non letti` : 'Deskbox');
+    tray.setToolTip(total > 0 ? `Deskbox - ${total} unread messages` : 'Deskbox');
   }
 });
 
@@ -233,7 +303,7 @@ ipcMain.handle('open-firefox-google', () => {
   return new Promise((resolve) => {
     const proc = spawn('firefox', ['https://accounts.google.com/ServiceLogin?service=mail']);
     proc.on('error', (err) => {
-      resolve({ success: false, message: `Errore avvio Firefox: ${err.message}` });
+      resolve({ success: false, message: `Could not launch Firefox: ${err.message}` });
     });
     resolve({ success: true });
   });
@@ -245,7 +315,7 @@ ipcMain.handle('sync-google-cookies', async () => {
     const scriptPath = path.join(__dirname, '..', 'scripts', 'sync_firefox_cookies.py');
     execFile(scriptPath, [], { maxBuffer: 10 * 1024 * 1024 }, async (err, stdout, stderr) => {
       if (err) {
-        return resolve({ success: false, message: `Errore script sync: ${err.message}` });
+        return resolve({ success: false, message: `Sync script error: ${err.message}` });
       }
       try {
         const cookies = JSON.parse(stdout);
@@ -254,7 +324,7 @@ ipcMain.handle('sync-google-cookies', async () => {
         if (authCookies.length === 0) {
           return resolve({
             success: false,
-            message: 'Nessun account Google trovato in Firefox. Apri Firefox, accedi al tuo account Google e riprova.'
+            message: 'No Google account found in Firefox. Please log into Google on Firefox first and try again.'
           });
         }
 
@@ -271,7 +341,7 @@ ipcMain.handle('sync-google-cookies', async () => {
 
         resolve({ success: true, count: imported, authCount: authCookies.length });
       } catch (parseErr) {
-        resolve({ success: false, message: `Errore parsing cookies: ${parseErr.message}` });
+        resolve({ success: false, message: `Error parsing cookies: ${parseErr.message}` });
       }
     });
   });

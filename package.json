@@ -1,18 +1,21 @@
 {
   "name": "deskbox",
   "version": "1.0.0",
-  "description": "Lightweight Rambox alternative for Ubuntu with Gmail, Calendar, WhatsApp and Telegram",
+  "description": "Lightweight workspace for Gmail, Google Calendar, Google Antigravity, Android Messages, WhatsApp and Telegram",
   "main": "src/main.js",
   "scripts": {
     "start": "electron ."
   },
   "keywords": [
     "rambox",
+    "workspace",
     "electron",
     "whatsapp",
     "telegram",
     "gmail",
-    "calendar"
+    "calendar",
+    "antigravity",
+    "android-messages"
   ],
   "author": "Deskbox",
   "license": "MIT",

@@ -5,7 +5,7 @@
     "url": "https://mail.google.com/mail/u/0/",
     "icon": "assets/gmail.svg",
     "partition": "persist:shared",
-    "badgeType": "title-or-dom"
+    "enabled": true
   },
   {
     "id": "calendar",
@@ -13,7 +13,23 @@
     "url": "https://calendar.google.com/",
     "icon": "assets/calendar.svg",
     "partition": "persist:shared",
-    "badgeType": "title-or-dom"
+    "enabled": true
+  },
+  {
+    "id": "antigravity",
+    "name": "Google Antigravity",
+    "url": "https://antigravity.google.com/",
+    "icon": "assets/antigravity.svg",
+    "partition": "persist:shared",
+    "enabled": true
+  },
+  {
+    "id": "messages",
+    "name": "Android Messages",
+    "url": "https://messages.google.com/web",
+    "icon": "assets/messages.svg",
+    "partition": "persist:shared",
+    "enabled": true
   },
   {
     "id": "whatsapp",
@@ -21,7 +37,7 @@
     "url": "https://web.whatsapp.com/",
     "icon": "assets/whatsapp.svg",
     "partition": "persist:shared",
-    "badgeType": "title-or-dom"
+    "enabled": true
   },
   {
     "id": "telegram",
@@ -29,6 +45,6 @@
     "url": "https://web.telegram.org/a/",
     "icon": "assets/telegram.svg",
     "partition": "persist:shared",
-    "badgeType": "title-or-dom"
+    "enabled": true
   }
 ]
