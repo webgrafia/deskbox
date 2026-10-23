@@ -56,14 +56,23 @@ def get_google_cookies():
                 "url": cookie_url,
                 "name": c.name,
                 "value": c.value,
-                "domain": domain,
                 "path": c.path,
                 "secure": bool(c.secure),
                 "httpOnly": bool(getattr(c, 'httpOnly', False) or c.has_nonstandard_attr('HttpOnly') or c.has_nonstandard_attr('httponly'))
             }
 
+            # Host-only cookies (__Host-*) MUST NOT have a domain attribute per RFC 6265bis
+            if not c.name.startswith('__Host-'):
+                cookie_obj["domain"] = domain
+            else:
+                cookie_obj["secure"] = True
+                cookie_obj["path"] = "/"
+
             if c.expires and c.expires > 0:
-                cookie_obj["expirationDate"] = float(c.expires)
+                exp = float(c.expires)
+                if exp > 10000000000:
+                    exp = exp / 1000.0
+                cookie_obj["expirationDate"] = exp
 
             cookies.append(cookie_obj)
 
@@ -71,7 +80,7 @@ def get_google_cookies():
 
 if __name__ == '__main__':
     cookies = get_google_cookies()
-    cal_cookies = [c['name'] for c in cookies if 'calendar' in c['domain']]
-    mail_cookies = [c['name'] for c in cookies if 'mail' in c['domain']]
+    cal_cookies = [c['name'] for c in cookies if 'calendar' in c.get('domain', '') or 'calendar' in c.get('url', '')]
+    mail_cookies = [c['name'] for c in cookies if 'mail' in c.get('domain', '') or 'mail' in c.get('url', '')]
     sys.stderr.write(f"Successfully gathered {len(cookies)} Google cookies (Calendar: {len(cal_cookies)}, Mail: {len(mail_cookies)})\n")
     print(json.dumps(cookies))

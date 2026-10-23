@@ -102,23 +102,42 @@ async function init() {
   btnSaveSettings.addEventListener('click', handleSaveSettings);
   btnAddService.addEventListener('click', handleAddCustomService);
 
-  // Tray Event Listeners
-  window.deskboxAPI.onTriggerSyncGoogle(() => openModal(modalGoogle));
-  window.deskboxAPI.onOpenSettings(() => openSettings());
-  window.deskboxAPI.onCacheCleared(() => {
-    showToast('Cache and cookies cleared from system menu.');
+  // IPC Event Listeners (Tray & Global Shortcuts)
+  window.deskboxAPI.onTriggerSyncGoogle?.(() => openModal(modalGoogle));
+  window.deskboxAPI.onOpenGoogleLogin?.(() => openModal(modalGoogle));
+  window.deskboxAPI.onOpenSettings?.(() => openSettings());
+  window.deskboxAPI.onReloadActiveService?.(() => reloadActiveService());
+  window.deskboxAPI.onCloseModals?.(() => {
+    closeModal(modalGoogle);
+    closeModal(modalSettings);
+  });
+  window.deskboxAPI.onCacheCleared?.(() => {
+    showToast('Cache and cookies cleared.');
     reloadAllServices();
   });
+  window.deskboxAPI.onSwitchService?.((index) => {
+    if (enabledServices[index]) {
+      switchService(enabledServices[index].id);
+    }
+  });
 
-  // Global Keyboard Shortcuts
+  // Window-level Keyboard Shortcuts fallback
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (modalGoogle.classList.contains('open')) closeModal(modalGoogle);
       if (modalSettings.classList.contains('open')) closeModal(modalSettings);
     }
     if (e.ctrlKey || e.metaKey) {
-      const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= enabledServices.length) {
+      let num = NaN;
+      if (e.code && e.code.startsWith('Digit')) {
+        num = parseInt(e.code.slice(5), 10);
+      } else if (e.code && e.code.startsWith('Numpad')) {
+        num = parseInt(e.code.slice(6), 10);
+      } else {
+        num = parseInt(e.key, 10);
+      }
+
+      if (!isNaN(num) && num >= 1 && num <= enabledServices.length) {
         e.preventDefault();
         switchService(enabledServices[num - 1].id);
       } else if (e.key.toLowerCase() === 'r') {
@@ -131,13 +150,6 @@ async function init() {
         e.preventDefault();
         openSettings();
       }
-    }
-  });
-
-  // System shortcut switch
-  window.deskboxAPI.onSwitchService((index) => {
-    if (enabledServices[index]) {
-      switchService(enabledServices[index].id);
     }
   });
 }
@@ -198,6 +210,35 @@ function renderServices() {
         if (event.channel === 'unread-count') {
           const count = event.args[0]?.count || 0;
           updateServiceBadge(service.id, count);
+        }
+      });
+
+      // Navigation & Event Logging
+      webview.addEventListener('did-start-loading', () => {
+        console.log(`[NAV:${service.name}] Started loading: ${service.url}`);
+      });
+
+      webview.addEventListener('did-navigate', (e) => {
+        console.log(`[NAV:${service.name}] Navigated to: ${e.url}`);
+      });
+
+      webview.addEventListener('did-fail-load', (e) => {
+        console.error(`[FAIL:${service.name}] Load failed (${e.errorCode}): ${e.errorDescription} for ${e.validatedURL}`);
+      });
+
+      webview.addEventListener('dom-ready', () => {
+        webview.executeJavaScript('({ title: document.title, url: window.location.href, isCookieWarning: (document.body.innerText.includes("cookie") || document.body.innerText.includes("Cookie")) && document.body.innerText.includes("problema") })').then((info) => {
+          if (info.isCookieWarning) {
+            console.warn(`[DOM:${service.name}] Cookie warning detected! Title: "${info.title}" @ ${info.url}`);
+          } else {
+            console.log(`[DOM:${service.name}] Ready: "${info.title}" @ ${info.url}`);
+          }
+        }).catch(() => {});
+      });
+
+      webview.addEventListener('console-message', (e) => {
+        if (e.level >= 2) {
+          console.warn(`[CONSOLE:${service.name}] ${e.message}`);
         }
       });
 

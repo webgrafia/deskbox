@@ -3,14 +3,18 @@ const path = require('path');
 const fs = require('fs');
 const { execFile, spawn } = require('child_process');
 
+// Ensure standard app name and userData directory across executions
+app.setName('deskbox');
+app.setPath('userData', path.join(app.getPath('appData'), 'deskbox'));
+
 // Disable automation flags so Google does not detect automated browser
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
 
 // Standard Chrome Linux User-Agent
 const CLEAN_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 
-// Allow cross-site storage / third-party cookies for Google authentication
-app.commandLine.appendSwitch('disable-features', 'ThirdPartyStoragePartitioning,ThirdPartyCookieDeprecation');
+// Allow cross-site storage and completely disable third-party cookie restrictions
+app.commandLine.appendSwitch('disable-features', 'TrackingProtection3pcd,BlockThirdPartyCookies,ThirdPartyStoragePartitioning,ThirdPartyCookieDeprecation');
 
 // Set global fallback user agent BEFORE app is ready
 app.userAgentFallback = CLEAN_USER_AGENT;
@@ -30,6 +34,7 @@ let isQuitting = false;
 // Ensure single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
+  console.log('[Deskbox] Another instance is already running. Quitting.');
   app.quit();
 } else {
   app.on('second-instance', () => {
@@ -47,7 +52,7 @@ function getDefaultServices() {
     const raw = fs.readFileSync(defaultPath, 'utf8');
     return JSON.parse(raw);
   } catch (err) {
-    console.error('Error loading default services.json:', err);
+    console.error('[Config] Error loading default services.json:', err);
     return [];
   }
 }
@@ -64,7 +69,7 @@ function loadServicesConfig() {
     try {
       fs.writeFileSync(userConfigPath, JSON.stringify(defaults, null, 2), 'utf8');
     } catch (e) {
-      console.warn('Could not initialize user-services.json:', e);
+      console.warn('[Config] Could not initialize user-services.json:', e);
     }
     return defaults;
   }
@@ -73,7 +78,6 @@ function loadServicesConfig() {
     const raw = fs.readFileSync(userConfigPath, 'utf8');
     const userServices = JSON.parse(raw);
 
-    // Ensure any new default services are added if missing
     const userIds = new Set(userServices.map(s => s.id));
     let hasChanges = false;
     for (const d of defaults) {
@@ -83,24 +87,16 @@ function loadServicesConfig() {
       }
     }
 
-    // Upgrade partition isolation and legacy URLs
-    for (const s of userServices) {
-      if (!s.partition || s.partition === 'persist:shared') {
-        s.partition = `persist:service_${s.id}`;
-        hasChanges = true;
-      }
-      if (s.id === 'calendar' && s.url === 'https://calendar.google.com/') {
-        s.url = 'https://calendar.google.com/calendar/u/0/r';
-        hasChanges = true;
-      }
-    }
-
     if (hasChanges) {
-      fs.writeFileSync(userConfigPath, JSON.stringify(userServices, null, 2), 'utf8');
+      try {
+        fs.writeFileSync(userConfigPath, JSON.stringify(userServices, null, 2), 'utf8');
+      } catch (e) {
+        console.warn('[Config] Could not persist new defaults into user-services.json:', e);
+      }
     }
     return userServices;
   } catch (err) {
-    console.error('Error loading user-services.json, falling back to defaults:', err);
+    console.error('[Config] Error loading user-services.json, falling back to defaults:', err);
     return defaults;
   }
 }
@@ -112,9 +108,10 @@ function saveServicesConfig(services) {
     if (updateTrayBadgeRef) {
       updateTrayBadgeRef();
     }
+    console.log('[Config] User services saved successfully.');
     return true;
   } catch (err) {
-    console.error('Error saving user services config:', err);
+    console.error('[Config] Error saving user services config:', err);
     return false;
   }
 }
@@ -125,20 +122,6 @@ function configureSession(ses) {
   ses.setPermissionRequestHandler((webContents, permission, callback) => {
     const allowed = ['notifications', 'media', 'audioCapture', 'mediaKeySystem', 'clipboard-read', 'clipboard-sanitized-write'];
     callback(allowed.includes(permission));
-  });
-
-  ses.webRequest.onBeforeSendHeaders((details, callback) => {
-    details.requestHeaders['User-Agent'] = CLEAN_USER_AGENT;
-    if (details.requestHeaders['sec-ch-ua']) {
-      details.requestHeaders['sec-ch-ua'] = '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"';
-    }
-    if (details.requestHeaders['sec-ch-ua-mobile']) {
-      details.requestHeaders['sec-ch-ua-mobile'] = '?0';
-    }
-    if (details.requestHeaders['sec-ch-ua-platform']) {
-      details.requestHeaders['sec-ch-ua-platform'] = '"Linux"';
-    }
-    callback({ cancel: false, requestHeaders: details.requestHeaders });
   });
 }
 
@@ -158,6 +141,10 @@ function createMainWindow() {
       contextIsolation: true,
       nodeIntegration: false
     }
+  });
+
+  mainWindow.webContents.on('console-message', (_event, level, message) => {
+    console.log(`[UI] ${message}`);
   });
 
   mainWindow.loadFile(path.join(__dirname, 'ui', 'index.html'));
@@ -208,18 +195,11 @@ function createTray() {
         }
       },
       {
-        label: 'Sync Google Session (via Firefox)',
-        click: async () => {
+        label: 'Google Account Sign-In',
+        click: () => {
           mainWindow.show();
           mainWindow.focus();
-          mainWindow.webContents.send('trigger-sync-google');
-        }
-      },
-      {
-        label: 'Clear Cache & Cookies',
-        click: async () => {
-          await clearAllPartitions();
-          mainWindow.webContents.send('cache-cleared');
+          mainWindow.webContents.send('open-google-login');
         }
       },
       { type: 'separator' },
@@ -237,22 +217,24 @@ function createTray() {
     tray.setContextMenu(contextMenu);
   };
 
+  updateTrayMenu(0);
+
   tray.on('click', () => {
     if (mainWindow.isVisible()) {
-      mainWindow.hide();
+      mainWindow.focus();
     } else {
       mainWindow.show();
       mainWindow.focus();
     }
   });
 
-  updateTrayMenu(0);
   return updateTrayMenu;
 }
 
 let updateTrayBadgeRef = null;
 
 async function clearAllPartitions() {
+  console.log('[Cleanup] Clearing all storage partitions...');
   const partitions = [
     'persist:service_gmail',
     'persist:service_calendar',
@@ -265,12 +247,133 @@ async function clearAllPartitions() {
   for (const part of partitions) {
     try {
       await session.fromPartition(part).clearStorageData();
-    } catch (e) {}
+      console.log(`[Cleanup] Cleared storage for ${part}`);
+    } catch (e) {
+      console.warn(`[Cleanup] Error clearing ${part}:`, e.message);
+    }
   }
 }
 
-app.whenReady().then(() => {
-  // Automatically configure any session / partition created
+async function importGoogleCookies() {
+  console.log('[Google Auth] Running sync_firefox_cookies.py to gather fresh session...');
+  return new Promise((resolve) => {
+    const scriptPath = path.join(__dirname, '..', 'scripts', 'sync_firefox_cookies.py');
+    execFile(scriptPath, [], { maxBuffer: 10 * 1024 * 1024 }, async (err, stdout, stderr) => {
+      if (err) {
+        console.error('[Google Auth] Script error:', err.message, stderr);
+        return resolve({ success: false, message: `Sync script error: ${err.message}` });
+      }
+      try {
+        const cookies = JSON.parse(stdout);
+        const authCookies = cookies.filter(c => ['SID', 'SSID', 'HSID', 'SAPISID'].includes(c.name));
+        console.log(`[Google Auth] Gathered ${cookies.length} cookies (${authCookies.length} core auth tokens)`);
+
+        if (authCookies.length === 0) {
+          console.warn('[Google Auth] No active Google session found in Firefox.');
+          return resolve({
+            success: false,
+            message: 'No Google account found in Firefox. Please log into Google on Firefox first and try again.'
+          });
+        }
+
+        // Apply cookies to all isolated Google partitions
+        for (const part of GOOGLE_PARTITIONS) {
+          const ses = session.fromPartition(part);
+          configureSession(ses);
+          let count = 0;
+          for (const c of cookies) {
+            const details = { ...c };
+            // RFC 6265bis: __Host- cookies must NOT have a domain attribute
+            if (details.name.startsWith('__Host-')) {
+              delete details.domain;
+              details.path = '/';
+              details.secure = true;
+            }
+            try {
+              await ses.cookies.set(details);
+              count++;
+            } catch (e) {
+              // Ignore non-critical set failures
+            }
+          }
+          console.log(`[Google Auth] Wrote ${count}/${cookies.length} cookies to partition ${part}`);
+        }
+
+        resolve({ success: true, count: cookies.length, authCount: authCookies.length });
+      } catch (parseErr) {
+        console.error('[Google Auth] Parse error:', parseErr.message);
+        resolve({ success: false, message: `Error parsing cookies: ${parseErr.message}` });
+      }
+    });
+  });
+}
+
+async function checkAndAutoSyncCookies() {
+  try {
+    const gmailSes = session.fromPartition('persist:service_gmail');
+    const existing = await gmailSes.cookies.get({ domain: 'google.com' });
+    console.log(`[Startup] Existing Google cookies in persist:service_gmail: ${existing.length}`);
+    if (existing.length < 5) {
+      console.log('[Startup] No Google cookies detected in partition. Attempting automatic seed from Firefox...');
+      const res = await importGoogleCookies();
+      if (res.success) {
+        console.log(`[Startup] Auto-seeded ${res.count} Google cookies successfully.`);
+      } else {
+        console.log(`[Startup] Auto-seed skipped: ${res.message}`);
+      }
+    }
+  } catch (err) {
+    console.warn('[Startup] Auto-sync check warning:', err.message);
+  }
+}
+
+app.whenReady().then(async () => {
+  console.log(`[Deskbox] Application ready. UserData path: ${app.getPath('userData')}`);
+
+  // Global shortcut handler for all webContents (main window + all service webviews)
+  app.on('web-contents-created', (_event, contents) => {
+    contents.on('before-input-event', (event, input) => {
+      if (input.type !== 'keyDown') return;
+
+      if (input.key === 'Escape') {
+        mainWindow?.webContents.send('close-modals');
+        return;
+      }
+
+      if (input.control || input.meta) {
+        let num = NaN;
+        if (input.code && input.code.startsWith('Digit')) {
+          num = parseInt(input.code.slice(5), 10);
+        } else if (input.code && input.code.startsWith('Numpad')) {
+          num = parseInt(input.code.slice(6), 10);
+        } else {
+          num = parseInt(input.key, 10);
+        }
+
+        if (!isNaN(num) && num >= 1 && num <= 9) {
+          event.preventDefault();
+          mainWindow?.webContents.send('switch-service', num - 1);
+          return;
+        }
+
+        const key = input.key.toLowerCase();
+        if (key === 'r') {
+          event.preventDefault();
+          mainWindow?.webContents.send('reload-active-service');
+        } else if (key === ',') {
+          event.preventDefault();
+          mainWindow?.webContents.send('open-settings');
+        } else if (key === 'g') {
+          event.preventDefault();
+          mainWindow?.webContents.send('open-google-login');
+        }
+      } else if (input.key === 'F5') {
+        event.preventDefault();
+        mainWindow?.webContents.send('reload-active-service');
+      }
+    });
+  });
+
   app.on('session-created', (ses) => {
     configureSession(ses);
   });
@@ -279,6 +382,9 @@ app.whenReady().then(() => {
   for (const part of GOOGLE_PARTITIONS) {
     configureSession(session.fromPartition(part));
   }
+
+  // Ensure cookies are seeded if missing
+  await checkAndAutoSyncCookies();
 
   createMainWindow();
   updateTrayBadgeRef = createTray();
@@ -315,6 +421,7 @@ ipcMain.handle('save-services', (_event, updatedServices) => {
 
 ipcMain.on('open-external', (_event, url) => {
   if (url) {
+    console.log('[External Link] Opening in default browser:', url);
     shell.openExternal(url);
   }
 });
@@ -335,7 +442,9 @@ ipcMain.on('update-total-badge', (_event, total) => {
 ipcMain.handle('clear-cache-cookies', async () => {
   try {
     await clearAllPartitions();
-    return { success: true };
+    // Automatically re-seed fresh cookies from Firefox right away
+    const syncRes = await importGoogleCookies();
+    return { success: true, reseeded: syncRes.success };
   } catch (err) {
     return { success: false, message: err.message };
   }
@@ -344,8 +453,10 @@ ipcMain.handle('clear-cache-cookies', async () => {
 // Open Firefox to Google Sign In
 ipcMain.handle('open-firefox-google', () => {
   return new Promise((resolve) => {
-    const proc = spawn('firefox', ['https://accounts.google.com/ServiceLogin?service=mail']);
+    console.log('[Google Auth] Launching Firefox on Google account...');
+    const proc = spawn('firefox', ['https://accounts.google.com/']);
     proc.on('error', (err) => {
+      console.error('[Google Auth] Failed to launch Firefox:', err.message);
       resolve({ success: false, message: `Could not launch Firefox: ${err.message}` });
     });
     resolve({ success: true });
@@ -354,42 +465,5 @@ ipcMain.handle('open-firefox-google', () => {
 
 // Sync Google cookies from Firefox
 ipcMain.handle('sync-google-cookies', async () => {
-  return new Promise((resolve) => {
-    const scriptPath = path.join(__dirname, '..', 'scripts', 'sync_firefox_cookies.py');
-    execFile(scriptPath, [], { maxBuffer: 10 * 1024 * 1024 }, async (err, stdout, stderr) => {
-      if (err) {
-        return resolve({ success: false, message: `Sync script error: ${err.message}` });
-      }
-      try {
-        const cookies = JSON.parse(stdout);
-        const authCookies = cookies.filter(c => ['SID', 'SSID', 'HSID', 'SAPISID'].includes(c.name));
-
-        if (authCookies.length === 0) {
-          return resolve({
-            success: false,
-            message: 'No Google account found in Firefox. Please log into Google on Firefox first and try again.'
-          });
-        }
-
-        // Apply cookies to all isolated Google partitions so each service has its own clean session
-        let totalImported = 0;
-        for (const part of GOOGLE_PARTITIONS) {
-          const ses = session.fromPartition(part);
-          configureSession(ses);
-          for (const c of cookies) {
-            try {
-              await ses.cookies.set(c);
-              totalImported++;
-            } catch (e) {
-              // Ignore minor cookie domain mismatches
-            }
-          }
-        }
-
-        resolve({ success: true, count: cookies.length, authCount: authCookies.length });
-      } catch (parseErr) {
-        resolve({ success: false, message: `Error parsing cookies: ${parseErr.message}` });
-      }
-    });
-  });
+  return await importGoogleCookies();
 });
