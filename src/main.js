@@ -15,6 +15,14 @@ app.commandLine.appendSwitch('disable-features', 'ThirdPartyStoragePartitioning,
 // Set global fallback user agent BEFORE app is ready
 app.userAgentFallback = CLEAN_USER_AGENT;
 
+const GOOGLE_PARTITIONS = [
+  'persist:service_gmail',
+  'persist:service_calendar',
+  'persist:service_antigravity',
+  'persist:service_messages',
+  'persist:shared'
+];
+
 let mainWindow = null;
 let tray = null;
 let isQuitting = false;
@@ -65,7 +73,7 @@ function loadServicesConfig() {
     const raw = fs.readFileSync(userConfigPath, 'utf8');
     const userServices = JSON.parse(raw);
 
-    // Ensure any new default services (e.g. Antigravity, Messages) are added if missing
+    // Ensure any new default services are added if missing
     const userIds = new Set(userServices.map(s => s.id));
     let hasChanges = false;
     for (const d of defaults) {
@@ -74,13 +82,19 @@ function loadServicesConfig() {
         hasChanges = true;
       }
     }
-    // Upgrade legacy calendar URLs
+
+    // Upgrade partition isolation and legacy URLs
     for (const s of userServices) {
+      if (!s.partition || s.partition === 'persist:shared') {
+        s.partition = `persist:service_${s.id}`;
+        hasChanges = true;
+      }
       if (s.id === 'calendar' && s.url === 'https://calendar.google.com/') {
         s.url = 'https://calendar.google.com/calendar/u/0/r';
         hasChanges = true;
       }
     }
+
     if (hasChanges) {
       fs.writeFileSync(userConfigPath, JSON.stringify(userServices, null, 2), 'utf8');
     }
@@ -204,8 +218,7 @@ function createTray() {
       {
         label: 'Clear Cache & Cookies',
         click: async () => {
-          const sharedSession = session.fromPartition('persist:shared');
-          await sharedSession.clearStorageData();
+          await clearAllPartitions();
           mainWindow.webContents.send('cache-cleared');
         }
       },
@@ -239,9 +252,33 @@ function createTray() {
 
 let updateTrayBadgeRef = null;
 
+async function clearAllPartitions() {
+  const partitions = [
+    'persist:service_gmail',
+    'persist:service_calendar',
+    'persist:service_antigravity',
+    'persist:service_messages',
+    'persist:service_whatsapp',
+    'persist:service_telegram',
+    'persist:shared'
+  ];
+  for (const part of partitions) {
+    try {
+      await session.fromPartition(part).clearStorageData();
+    } catch (e) {}
+  }
+}
+
 app.whenReady().then(() => {
+  // Automatically configure any session / partition created
+  app.on('session-created', (ses) => {
+    configureSession(ses);
+  });
+
   configureSession(session.defaultSession);
-  configureSession(session.fromPartition('persist:shared'));
+  for (const part of GOOGLE_PARTITIONS) {
+    configureSession(session.fromPartition(part));
+  }
 
   createMainWindow();
   updateTrayBadgeRef = createTray();
@@ -297,8 +334,7 @@ ipcMain.on('update-total-badge', (_event, total) => {
 // Clear cache & cookies
 ipcMain.handle('clear-cache-cookies', async () => {
   try {
-    const sharedSession = session.fromPartition('persist:shared');
-    await sharedSession.clearStorageData();
+    await clearAllPartitions();
     return { success: true };
   } catch (err) {
     return { success: false, message: err.message };
@@ -335,18 +371,22 @@ ipcMain.handle('sync-google-cookies', async () => {
           });
         }
 
-        const sharedSession = session.fromPartition('persist:shared');
-        let imported = 0;
-        for (const c of cookies) {
-          try {
-            await sharedSession.cookies.set(c);
-            imported++;
-          } catch (e) {
-            // Ignore minor cookies
+        // Apply cookies to all isolated Google partitions so each service has its own clean session
+        let totalImported = 0;
+        for (const part of GOOGLE_PARTITIONS) {
+          const ses = session.fromPartition(part);
+          configureSession(ses);
+          for (const c of cookies) {
+            try {
+              await ses.cookies.set(c);
+              totalImported++;
+            } catch (e) {
+              // Ignore minor cookie domain mismatches
+            }
           }
         }
 
-        resolve({ success: true, count: imported, authCount: authCookies.length });
+        resolve({ success: true, count: cookies.length, authCount: authCookies.length });
       } catch (parseErr) {
         resolve({ success: false, message: `Error parsing cookies: ${parseErr.message}` });
       }
