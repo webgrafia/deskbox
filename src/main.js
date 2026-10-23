@@ -67,14 +67,21 @@ function loadServicesConfig() {
 
     // Ensure any new default services (e.g. Antigravity, Messages) are added if missing
     const userIds = new Set(userServices.map(s => s.id));
-    let hasNew = false;
+    let hasChanges = false;
     for (const d of defaults) {
       if (!userIds.has(d.id)) {
         userServices.push(d);
-        hasNew = true;
+        hasChanges = true;
       }
     }
-    if (hasNew) {
+    // Upgrade legacy calendar URLs
+    for (const s of userServices) {
+      if (s.id === 'calendar' && s.url === 'https://calendar.google.com/') {
+        s.url = 'https://calendar.google.com/calendar/u/0/r';
+        hasChanges = true;
+      }
+    }
+    if (hasChanges) {
       fs.writeFileSync(userConfigPath, JSON.stringify(userServices, null, 2), 'utf8');
     }
     return userServices;

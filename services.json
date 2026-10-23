@@ -10,7 +10,7 @@
   {
     "id": "calendar",
     "name": "Google Calendar",
-    "url": "https://calendar.google.com/",
+    "url": "https://calendar.google.com/calendar/u/0/r",
     "icon": "assets/calendar.svg",
     "partition": "persist:shared",
     "enabled": true
