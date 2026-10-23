@@ -177,8 +177,11 @@ function renderServices() {
 
     const iconImg = document.createElement('img');
     iconImg.className = 'service-icon';
-    iconImg.src = service.icon || 'assets/icon.svg';
+    iconImg.src = service.faviconUrl || service.icon || 'assets/icon.svg';
     iconImg.alt = service.name;
+    iconImg.onerror = () => {
+      iconImg.src = service.icon || 'assets/icon.svg';
+    };
 
     const badge = document.createElement('div');
     badge.className = `badge ${badgeCounts[service.id] > 0 ? 'visible' : ''}`;
@@ -210,6 +213,21 @@ function renderServices() {
         if (event.channel === 'unread-count') {
           const count = event.args[0]?.count || 0;
           updateServiceBadge(service.id, count);
+        }
+      });
+
+      // Live Favicon extraction directly from the loaded service
+      webview.addEventListener('page-favicon-updated', (e) => {
+        if (e.favicons && e.favicons.length > 0) {
+          const favUrl = e.favicons[e.favicons.length - 1];
+          if (favUrl) {
+            const btnIcon = document.querySelector(`#btn-${service.id} .service-icon`);
+            if (btnIcon && btnIcon.src !== favUrl) {
+              console.log(`[Favicon:${service.name}] Live icon updated: ${favUrl}`);
+              btnIcon.src = favUrl;
+              service.faviconUrl = favUrl;
+            }
+          }
         }
       });
 
