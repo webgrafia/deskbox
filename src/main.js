@@ -20,6 +20,7 @@ app.commandLine.appendSwitch('disable-features', 'TrackingProtection3pcd,BlockTh
 app.userAgentFallback = CLEAN_USER_AGENT;
 
 const GOOGLE_PARTITIONS = [
+  'persist:google',
   'persist:service_gmail',
   'persist:service_calendar',
   'persist:service_antigravity',
@@ -83,6 +84,16 @@ function loadServicesConfig() {
     for (const d of defaults) {
       if (!userIds.has(d.id)) {
         userServices.push(d);
+        hasChanges = true;
+      }
+    }
+
+    // Unify all Google services to the shared 'persist:google' partition
+    // so Gmail, Calendar, Antigravity, and Messages share rolling Google session tokens seamlessly
+    const googleServiceIds = ['gmail', 'calendar', 'antigravity', 'messages'];
+    for (const s of userServices) {
+      if (googleServiceIds.includes(s.id) && s.partition !== 'persist:google') {
+        s.partition = 'persist:google';
         hasChanges = true;
       }
     }
@@ -236,6 +247,7 @@ let updateTrayBadgeRef = null;
 async function clearAllPartitions() {
   console.log('[Cleanup] Clearing all storage partitions...');
   const partitions = [
+    'persist:google',
     'persist:service_gmail',
     'persist:service_calendar',
     'persist:service_antigravity',
@@ -310,9 +322,9 @@ async function importGoogleCookies() {
 
 async function checkAndAutoSyncCookies() {
   try {
-    const gmailSes = session.fromPartition('persist:service_gmail');
-    const existing = await gmailSes.cookies.get({ domain: 'google.com' });
-    console.log(`[Startup] Existing Google cookies in persist:service_gmail: ${existing.length}`);
+    const googleSes = session.fromPartition('persist:google');
+    const existing = await googleSes.cookies.get({ domain: 'google.com' });
+    console.log(`[Startup] Existing Google cookies in persist:google: ${existing.length}`);
     if (existing.length < 5) {
       console.log('[Startup] No Google cookies detected in partition. Attempting automatic seed from Firefox...');
       const res = await importGoogleCookies();

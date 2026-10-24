@@ -80,7 +80,12 @@ async function init() {
   renderServices();
 
   // Reload active service
-  btnReload.addEventListener('click', reloadActiveService);
+  btnReload.addEventListener('click', () => reloadActiveService(false));
+  btnReload.addEventListener('dblclick', () => reloadActiveService(true));
+  btnReload.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    reloadActiveService(true);
+  });
 
   // Google Login Modal Handlers
   btnGoogleLogin.addEventListener('click', () => openModal(modalGoogle));
@@ -245,9 +250,15 @@ function renderServices() {
       });
 
       webview.addEventListener('dom-ready', () => {
-        webview.executeJavaScript('({ title: document.title, url: window.location.href, isCookieWarning: (document.body.innerText.includes("cookie") || document.body.innerText.includes("Cookie")) && document.body.innerText.includes("problema") })').then((info) => {
+        webview.executeJavaScript('({ title: document.title, url: window.location.href, isCookieWarning: (document.body.innerText.includes("cookie") || document.body.innerText.includes("Cookie")) && document.body.innerText.includes("problema") })').then(async (info) => {
           if (info.isCookieWarning) {
             console.warn(`[DOM:${service.name}] Cookie warning detected! Title: "${info.title}" @ ${info.url}`);
+            showToast(`Auto-recovering session for ${service.name}...`, 4000);
+            const syncRes = await window.deskboxAPI.syncGoogleCookies();
+            if (syncRes && syncRes.success) {
+              console.log(`[DOM:${service.name}] Auto-sync succeeded, resetting to canonical URL: ${service.url}`);
+              webview.loadURL(service.url);
+            }
           } else {
             console.log(`[DOM:${service.name}] Ready: "${info.title}" @ ${info.url}`);
           }
@@ -291,7 +302,11 @@ function renderServices() {
 }
 
 function switchService(id) {
-  if (id === activeServiceId) return;
+  if (id === activeServiceId) {
+    // Clicking the active tab again resets it to home URL (instant recovery without disable/re-enable)
+    reloadActiveService(true);
+    return;
+  }
 
   document.querySelectorAll('.service-item').forEach(el => el.classList.remove('active'));
   const activeBtn = document.getElementById(`btn-${id}`);
@@ -307,16 +322,44 @@ function switchService(id) {
   activeServiceId = id;
 }
 
-function reloadActiveService() {
+function reloadActiveService(forceHome = false) {
   if (!activeServiceId) return;
   const activeWebview = document.getElementById(`view-${activeServiceId}`);
-  if (activeWebview) {
-    activeWebview.reload();
+  const service = enabledServices.find(s => s.id === activeServiceId);
+  if (!activeWebview || !service) return;
+
+  let currentUrl = '';
+  try {
+    currentUrl = activeWebview.getURL() || '';
+  } catch (e) {}
+
+  const isStuckOrError = !currentUrl ||
+                         currentUrl.startsWith('about:') ||
+                         currentUrl.includes('accounts.google.com') ||
+                         currentUrl.includes('ServiceLogin') ||
+                         currentUrl.includes('CheckCookie') ||
+                         currentUrl.includes('support.google.com') ||
+                         currentUrl.includes('answer/61416');
+
+  if (forceHome || isStuckOrError) {
+    console.log(`[Reload:${service.name}] Resetting webview to canonical root URL: ${service.url}`);
+    activeWebview.loadURL(service.url);
+    showToast(`Resetting ${service.name} to home...`, 2000);
+  } else {
+    console.log(`[Reload:${service.name}] Reloading ignoring cache: ${currentUrl}`);
+    activeWebview.reloadIgnoringCache();
+    showToast(`Reloaded ${service.name}`, 1500);
   }
 }
 
 function reloadAllServices() {
-  document.querySelectorAll('#webview-container webview').forEach(wv => wv.reload());
+  enabledServices.forEach(service => {
+    const wv = document.getElementById(`view-${service.id}`);
+    if (wv) {
+      console.log(`[ReloadAll] Resetting ${service.name} to canonical root: ${service.url}`);
+      wv.loadURL(service.url);
+    }
+  });
 }
 
 function updateServiceBadge(serviceId, count) {

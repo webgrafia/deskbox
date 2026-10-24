@@ -4,7 +4,7 @@
     "name": "Gmail",
     "url": "https://mail.google.com/mail/u/0/",
     "icon": "assets/gmail.svg",
-    "partition": "persist:service_gmail",
+    "partition": "persist:google",
     "enabled": true
   },
   {
@@ -12,7 +12,7 @@
     "name": "Google Calendar",
     "url": "https://calendar.google.com/calendar/u/0/r",
     "icon": "assets/calendar.svg",
-    "partition": "persist:service_calendar",
+    "partition": "persist:google",
     "enabled": true
   },
   {
@@ -20,7 +20,7 @@
     "name": "Google Antigravity",
     "url": "https://antigravity.google.com/",
     "icon": "assets/antigravity.svg",
-    "partition": "persist:service_antigravity",
+    "partition": "persist:google",
     "enabled": true
   },
   {
@@ -28,7 +28,7 @@
     "name": "Android Messages",
     "url": "https://messages.google.com/web",
     "icon": "assets/messages.svg",
-    "partition": "persist:service_messages",
+    "partition": "persist:google",
     "enabled": true
   },
   {
