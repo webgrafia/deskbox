@@ -71,18 +71,19 @@ function parseUnreadCount() {
 
   // 3. Android Messages (Google Messages)
   if (host.includes('messages.google.com')) {
+    // Google Messages title format when unread: "(1) Messages for web" or "(2) Messaggi per il Web"
     const titleMatch = title.match(/^\(([0-9]+)\)/);
     if (titleMatch) {
       return parseInt(titleMatch[1], 10) || 0;
     }
-    let msgCount = 0;
-    const msgBadges = document.querySelectorAll('mws-conversation-list-item .unread, [aria-label*="unread"] .badge');
-    msgBadges.forEach((el) => {
-      const num = parseInt(el.textContent.trim(), 10);
-      if (!isNaN(num)) msgCount += num;
-      else msgCount += 1;
-    });
-    return msgCount;
+
+    // Fallback: only match conversations explicitly flagged as unread
+    const unreadItems = document.querySelectorAll('mws-conversation-list-item[is-unread="true"], [data-is-unread="true"]');
+    if (unreadItems.length > 0) {
+      return unreadItems.length;
+    }
+
+    return 0;
   }
 
   // 4. Gmail (mail.google.com)
