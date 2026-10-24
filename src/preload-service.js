@@ -131,3 +131,18 @@ window.addEventListener('DOMContentLoaded', () => {
   setInterval(updateBadge, 3000);
   updateBadge();
 });
+
+// Intercept link clicks in the webview to reliably open external links in default browser
+document.addEventListener('click', (e) => {
+  const target = e.target.closest('a');
+  if (target && target.href) {
+    const href = target.href;
+    if (href.startsWith('http://') || href.startsWith('https://')) {
+      const isGoogleRedirect = href.includes('google.com/url?') || href.includes('google.it/url?');
+      if (isGoogleRedirect || target.target === '_blank') {
+        e.preventDefault();
+        ipcRenderer.send('open-external', href);
+      }
+    }
+  }
+}, true);

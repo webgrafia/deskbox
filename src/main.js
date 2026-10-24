@@ -347,6 +347,66 @@ async function checkAndAutoSyncCookies() {
   }
 }
 
+function unwrapUrl(targetUrl) {
+  if (!targetUrl) return '';
+  try {
+    const parsed = new URL(targetUrl);
+    // Unwrap Google redirect URLs (e.g. https://www.google.com/url?q=https://...)
+    if ((parsed.hostname === 'www.google.com' || parsed.hostname === 'google.com' || parsed.hostname.endsWith('.google.com') || parsed.hostname.endsWith('.google.it')) && parsed.pathname === '/url') {
+      const q = parsed.searchParams.get('q') || parsed.searchParams.get('url');
+      if (q) return q;
+    }
+  } catch (e) {}
+  return targetUrl;
+}
+
+function isExternalUrl(targetUrl) {
+  if (!targetUrl) return false;
+  try {
+    const parsed = new URL(targetUrl);
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return false;
+    }
+
+    // Google redirect wrapper is ALWAYS external
+    if ((parsed.hostname === 'www.google.com' || parsed.hostname === 'google.com' || parsed.hostname.endsWith('.google.com') || parsed.hostname.endsWith('.google.it')) && parsed.pathname === '/url') {
+      return true;
+    }
+
+    const host = parsed.hostname.toLowerCase();
+
+    // Internal service hosts
+    const internalHosts = [
+      'mail.google.com',
+      'calendar.google.com',
+      'accounts.google.com',
+      'messages.google.com',
+      'antigravity.google.com',
+      'myaccount.google.com',
+      'web.whatsapp.com',
+      'web.telegram.org'
+    ];
+
+    if (internalHosts.some(h => host === h || host.endsWith('.' + h))) {
+      return false;
+    }
+
+    if (host.endsWith('whatsapp.com') || host.endsWith('whatsapp.net')) {
+      return false;
+    }
+
+    if (host.endsWith('telegram.org')) {
+      return false;
+    }
+
+    // Everything else (links in emails, websites, articles, docs) is external
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 app.whenReady().then(async () => {
   console.log(`[Deskbox] Application ready. UserData path: ${app.getPath('userData')}`);
 
@@ -398,6 +458,28 @@ app.whenReady().then(async () => {
         mainWindow?.webContents.send('reload-active-service');
       }
     });
+
+    // Handle link clicks from all guest service webviews
+    // Intercept window.open / <a target="_blank"> and open in default browser
+    contents.setWindowOpenHandler(({ url }) => {
+      const cleanUrl = unwrapUrl(url);
+      if (isExternalUrl(cleanUrl)) {
+        console.log('[Link Handler] setWindowOpenHandler opening external link:', cleanUrl);
+        shell.openExternal(cleanUrl);
+        return { action: 'deny' };
+      }
+      return { action: 'allow' };
+    });
+
+    // Intercept in-page navigations to external sites (e.g. clicked email links)
+    contents.on('will-navigate', (event, url) => {
+      const cleanUrl = unwrapUrl(url);
+      if (isExternalUrl(cleanUrl)) {
+        event.preventDefault();
+        console.log('[Link Handler] will-navigate opening external link:', cleanUrl);
+        shell.openExternal(cleanUrl);
+      }
+    });
   });
 
   app.on('session-created', (ses) => {
@@ -445,8 +527,9 @@ ipcMain.handle('save-services', (_event, updatedServices) => {
   return { success };
 });
 
-ipcMain.on('open-external', (_event, url) => {
-  if (url) {
+ipcMain.on('open-external', (_event, rawUrl) => {
+  if (rawUrl) {
+    const url = unwrapUrl(rawUrl);
     console.log('[External Link] Opening in default browser:', url);
     shell.openExternal(url);
   }

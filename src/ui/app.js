@@ -72,15 +72,19 @@ function isAuthOrInternalUrl(serviceUrl, targetUrl) {
     const target = new URL(targetUrl);
     const service = new URL(serviceUrl);
 
+    // Google redirect tracker (google.com/url?q=...) is ALWAYS external!
+    if ((target.hostname === 'www.google.com' || target.hostname === 'google.com' || target.hostname.endsWith('.google.com') || target.hostname.endsWith('.google.it')) && target.pathname === '/url') {
+      return false;
+    }
+
+    // Exact hostname match or subdomain
     if (target.hostname === service.hostname || target.hostname.endsWith('.' + service.hostname)) {
       return true;
     }
 
-    const isGoogleService = service.hostname.includes('google.com');
-    const isGoogleTarget = target.hostname.includes('google.com') ||
-                           target.hostname.includes('googleusercontent.com') ||
-                           target.hostname.includes('gstatic.com');
-    if (isGoogleService && isGoogleTarget) {
+    // Google Accounts & authentication endpoints
+    const authHosts = ['accounts.google.com', 'myaccount.google.com'];
+    if (authHosts.includes(target.hostname)) {
       return true;
     }
 
@@ -364,10 +368,10 @@ function renderServices() {
 
       webview.addEventListener('new-window', (e) => {
         if (e.url && !e.url.startsWith('about:')) {
+          e.preventDefault();
           if (isAuthOrInternalUrl(service.url, e.url)) {
             webview.loadURL(e.url);
           } else {
-            e.preventDefault();
             window.deskboxAPI.openExternal(e.url);
           }
         }
