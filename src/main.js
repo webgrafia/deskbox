@@ -198,6 +198,14 @@ function createTray() {
         }
       },
       {
+        label: 'Calculator (Ctrl+Alt+C)',
+        click: () => {
+          mainWindow.show();
+          mainWindow.focus();
+          mainWindow.webContents.send('toggle-calculator');
+        }
+      },
+      {
         label: 'Settings / Manage Services',
         click: () => {
           mainWindow.show();
@@ -349,6 +357,12 @@ app.whenReady().then(async () => {
 
       if (input.key === 'Escape') {
         mainWindow?.webContents.send('close-modals');
+        return;
+      }
+
+      if ((input.control || input.meta) && input.alt && input.key.toLowerCase() === 'c') {
+        event.preventDefault();
+        mainWindow?.webContents.send('toggle-calculator');
         return;
       }
 

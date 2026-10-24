@@ -19,6 +19,14 @@
       </div>
 
       <div class="sidebar-bottom">
+        <button id="btn-calc" class="action-btn" title="Calculator (Ctrl+Alt+C)">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+            <line x1="8" y1="6" x2="16" y2="6"></line>
+            <line x1="16" y1="14" x2="16" y2="18"></line>
+            <path d="M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M8 18h.01M12 18h.01"></path>
+          </svg>
+        </button>
         <button id="btn-google-login" class="action-btn google-btn" title="Google Account Sign-In (Gmail, Calendar, Antigravity, Messages)">
           <img src="assets/google-g.svg" alt="Google Login" class="google-icon" />
         </button>
@@ -40,6 +48,82 @@
 
     <!-- Main Content: Webview Views -->
     <main id="webview-container"></main>
+
+    <!-- Calculator Flyout Widget -->
+    <div id="flyout-calc" class="calc-flyout">
+      <div class="calc-header">
+        <div class="calc-title">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="#818cf8" stroke-width="2" fill="none">
+            <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+            <line x1="8" y1="6" x2="16" y2="6"></line>
+            <line x1="16" y1="14" x2="16" y2="18"></line>
+            <path d="M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M8 18h.01M12 18h.01"></path>
+          </svg>
+          <span>Calculator</span>
+        </div>
+        <div class="calc-header-actions">
+          <button id="calc-btn-history" class="calc-tool-btn" title="Toggle History">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </button>
+          <button id="calc-btn-close" class="calc-tool-btn" title="Close (Esc)">&times;</button>
+        </div>
+      </div>
+
+      <!-- History Dropdown Panel -->
+      <div id="calc-history-panel" class="calc-history-panel">
+        <div class="calc-history-header">
+          <span>Session History</span>
+          <button id="calc-btn-clear-history" class="calc-history-clear">Clear</button>
+        </div>
+        <div id="calc-history-list" class="calc-history-list">
+          <div class="calc-history-empty">No calculations yet</div>
+        </div>
+      </div>
+
+      <!-- Display -->
+      <div class="calc-display-wrap">
+        <div id="calc-expr" class="calc-expr"></div>
+        <div class="calc-result-row">
+          <div id="calc-display" class="calc-display">0</div>
+          <button id="calc-btn-copy" class="calc-copy-btn" title="Copy Result">
+            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Keypad -->
+      <div class="calc-keypad">
+        <button class="calc-key calc-key-fn" data-action="clear">AC</button>
+        <button class="calc-key calc-key-fn" data-action="plusminus">±</button>
+        <button class="calc-key calc-key-fn" data-action="percent">%</button>
+        <button class="calc-key calc-key-op" data-action="op" data-val="/">÷</button>
+
+        <button class="calc-key" data-action="num" data-val="7">7</button>
+        <button class="calc-key" data-action="num" data-val="8">8</button>
+        <button class="calc-key" data-action="num" data-val="9">9</button>
+        <button class="calc-key calc-key-op" data-action="op" data-val="*">×</button>
+
+        <button class="calc-key" data-action="num" data-val="4">4</button>
+        <button class="calc-key" data-action="num" data-val="5">5</button>
+        <button class="calc-key" data-action="num" data-val="6">6</button>
+        <button class="calc-key calc-key-op" data-action="op" data-val="-">−</button>
+
+        <button class="calc-key" data-action="num" data-val="1">1</button>
+        <button class="calc-key" data-action="num" data-val="2">2</button>
+        <button class="calc-key" data-action="num" data-val="3">3</button>
+        <button class="calc-key calc-key-op" data-action="op" data-val="+">+</button>
+
+        <button class="calc-key calc-key-zero" data-action="num" data-val="0">0</button>
+        <button class="calc-key" data-action="dot">.</button>
+        <button class="calc-key calc-key-equals" data-action="equals">=</button>
+      </div>
+    </div>
 
     <!-- Google Login Modal -->
     <div id="modal-google" class="modal-backdrop">

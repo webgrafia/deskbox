@@ -14,5 +14,6 @@ contextBridge.exposeInMainWorld('deskboxAPI', {
   onCacheCleared: (callback) => ipcRenderer.on('cache-cleared', () => callback()),
   onOpenSettings: (callback) => ipcRenderer.on('open-settings', () => callback()),
   onOpenGoogleLogin: (callback) => ipcRenderer.on('open-google-login', () => callback()),
+  onToggleCalculator: (callback) => ipcRenderer.on('toggle-calculator', () => callback()),
   onCloseModals: (callback) => ipcRenderer.on('close-modals', () => callback())
 });
