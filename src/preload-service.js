@@ -31,84 +31,85 @@ try {
 let currentCount = 0;
 
 function parseUnreadCount() {
-  let count = 0;
-
-  // 1. Check document.title pattern: (N) Title or Title (N)
+  const host = window.location.hostname.toLowerCase();
   const title = document.title || '';
-  const titleMatch = title.match(/\(([0-9]+)\+?\)/);
-  if (titleMatch) {
-    const val = parseInt(titleMatch[1], 10);
-    if (!isNaN(val) && val > 0) {
-      count = Math.max(count, val);
-    }
-  }
 
-  // 2. WhatsApp specific DOM checks
-  if (window.location.hostname.includes('whatsapp.com')) {
+  // 1. WhatsApp Web
+  if (host.includes('whatsapp.com')) {
+    // Standard WhatsApp title: "(3) WhatsApp"
+    const titleMatch = title.match(/^\(([0-9]+)\)/);
+    if (titleMatch) {
+      return parseInt(titleMatch[1], 10) || 0;
+    }
+    let domCount = 0;
     const waBadges = document.querySelectorAll(
       '[aria-label*="unread"], [aria-label*="non letto"], [aria-label*="non letti"], span[data-testid="icon-unread-count"]'
     );
-    let domCount = 0;
     waBadges.forEach((el) => {
       const text = el.textContent || '';
       const num = parseInt(text.trim(), 10);
-      if (!isNaN(num)) {
-        domCount += num;
-      } else if (text.trim().length > 0) {
-        domCount += 1;
-      }
+      if (!isNaN(num)) domCount += num;
     });
-    if (domCount > 0) {
-      count = Math.max(count, domCount);
-    }
+    return domCount;
   }
 
-  // 3. Telegram specific DOM checks
-  if (window.location.hostname.includes('telegram.org')) {
-    const tgBadges = document.querySelectorAll('.ChatBadge.unread, .badge, .ListItem-badge');
+  // 2. Telegram Web
+  if (host.includes('telegram.org')) {
+    // Standard Telegram title: "(5) Telegram"
+    const titleMatch = title.match(/^\(([0-9]+)\)/);
+    if (titleMatch) {
+      return parseInt(titleMatch[1], 10) || 0;
+    }
     let tgCount = 0;
+    const tgBadges = document.querySelectorAll('.ChatBadge.unread, .badge:not(.muted), .ListItem-badge');
     tgBadges.forEach((el) => {
       const num = parseInt(el.textContent.trim(), 10);
-      if (!isNaN(num)) {
-        tgCount += num;
-      } else {
-        tgCount += 1;
-      }
+      if (!isNaN(num)) tgCount += num;
     });
-    if (tgCount > 0) {
-      count = Math.max(count, tgCount);
-    }
+    return tgCount;
   }
 
-  // 4. Android Messages specific DOM checks
-  if (window.location.hostname.includes('messages.google.com')) {
-    const msgBadges = document.querySelectorAll('.unread, [aria-label*="unread"], .badge');
+  // 3. Android Messages (Google Messages)
+  if (host.includes('messages.google.com')) {
+    const titleMatch = title.match(/^\(([0-9]+)\)/);
+    if (titleMatch) {
+      return parseInt(titleMatch[1], 10) || 0;
+    }
     let msgCount = 0;
+    const msgBadges = document.querySelectorAll('mws-conversation-list-item .unread, [aria-label*="unread"] .badge');
     msgBadges.forEach((el) => {
       const num = parseInt(el.textContent.trim(), 10);
-      if (!isNaN(num)) {
-        msgCount += num;
-      } else {
-        msgCount += 1;
-      }
+      if (!isNaN(num)) msgCount += num;
+      else msgCount += 1;
     });
-    if (msgCount > 0) {
-      count = Math.max(count, msgCount);
-    }
+    return msgCount;
   }
 
-  // 5. Gmail specific DOM checks
-  if (window.location.hostname.includes('mail.google.com')) {
-    const gmailUnread = document.querySelector('.bsU');
-    if (gmailUnread) {
-      const num = parseInt(gmailUnread.textContent.replace(/[^0-9]/g, ''), 10);
+  // 4. Gmail (mail.google.com)
+  if (host.includes('mail.google.com')) {
+    // Gmail unread count appears exclusively in the Inbox title or the Inbox folder link
+    // Examples: "Posta in arrivo (2) - ..." or "Inbox (2) - ..." or "(2) Posta in arrivo"
+    // If no unread mail: "Posta in arrivo - ..." (no parentheses or number)
+    const inboxMatch = title.match(/(?:Inbox|Posta in arrivo)\s*\(([0-9]+)\)/i) || 
+                       title.match(/^\(([0-9]+)\)\s*(?:Inbox|Posta in arrivo)/i);
+    if (inboxMatch) {
+      return parseInt(inboxMatch[1], 10) || 0;
+    }
+
+    // Target the specific Inbox folder element in the left nav (avoid matching Spam / Promotions)
+    const inboxEl = document.querySelector('a[href*="#inbox"] .bsU, div[data-tooltip*="Inbox"] .bsU, div[data-tooltip*="Posta in arrivo"] .bsU');
+    if (inboxEl) {
+      const num = parseInt(inboxEl.textContent.replace(/[^0-9]/g, ''), 10);
       if (!isNaN(num)) {
-        count = Math.max(count, num);
+        return num;
       }
     }
+
+    return 0;
   }
 
-  return count;
+  // Services like Google Calendar, Google Antigravity, etc. do NOT have unread message counts
+  return 0;
 }
 
 function updateBadge() {
