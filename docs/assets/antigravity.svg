@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="agGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4285F4"/>
+      <stop offset="50%" stop-color="#8AB4F8"/>
+      <stop offset="100%" stop-color="#C58AF9"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#0f172a"/>
+  <!-- Floating rings -->
+  <ellipse cx="32" cy="38" rx="20" ry="7" fill="none" stroke="url(#agGrad)" stroke-width="2.5" opacity="0.6"/>
+  <ellipse cx="32" cy="32" rx="16" ry="5.5" fill="none" stroke="url(#agGrad)" stroke-width="2.5" opacity="0.85"/>
+  <!-- Floating sphere / core -->
+  <circle cx="32" cy="22" r="9" fill="url(#agGrad)"/>
+  <!-- Glow highlight -->
+  <circle cx="29" cy="19" r="3" fill="#ffffff" opacity="0.6"/>
+</svg>

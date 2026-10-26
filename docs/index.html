@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deskbox — Spazio di Lavoro Unificato per Linux e macOS</title>
+  <meta name="description" content="Deskbox raggruppa le tue app di produttività e messaggistica in un'unica interfaccia scattante, leggera e personalizzabile. Alternativa moderna a Rambox e Ferdium.">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(22, 29, 47, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(30, 41, 69, 0.85);
+      --accent-primary: #6366f1;
+      --accent-secondary: #818cf8;
+      --accent-glow: rgba(99, 102, 241, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --green: #10b981;
+      --red: #ef4444;
+      --sidebar-bg: #0d121f;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.6;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.25), transparent),
+        radial-gradient(circle at 10% 40%, rgba(56, 189, 248, 0.1), transparent 30%),
+        radial-gradient(circle at 90% 70%, rgba(129, 140, 248, 0.08), transparent 30%);
+      background-attachment: fixed;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Navbar */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      background: rgba(9, 13, 22, 0.8);
+      border-bottom: 1px solid var(--card-border);
+    }
+    .nav-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+      font-weight: 800;
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+    }
+    .logo img {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      align-items: center;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover {
+      color: var(--text-main);
+    }
+    .btn-github {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .btn-github:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+    }
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: var(--accent-secondary);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .badge-pill .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 5vw, 4.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 24px;
+      background: linear-gradient(180deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: clamp(1.1rem, 2vw, 1.35rem);
+      color: var(--text-muted);
+      max-width: 760px;
+      margin: 0 auto 36px;
+      font-weight: 400;
+    }
+    .cta-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 50px;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: white;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      text-decoration: none;
+      box-shadow: 0 8px 24px var(--accent-glow);
+      transition: all 0.25s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(99, 102, 241, 0.5);
+    }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 14px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1.05rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .btn-secondary:hover {
+      background: var(--card-hover);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    /* Window Mockup */
+    .mockup-container {
+      max-width: 1020px;
+      margin: 0 auto 100px;
+      border-radius: 18px;
+      border: 1px solid var(--card-border);
+      background: var(--sidebar-bg);
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(99, 102, 241, 0.15);
+      overflow: hidden;
+    }
+    .mockup-header {
+      background: #111827;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .traffic-lights {
+      display: flex;
+      gap: 8px;
+    }
+    .light {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .light.red { background: #ef4444; }
+    .light.yellow { background: #f59e0b; }
+    .light.green { background: #10b981; }
+    .mockup-title {
+      flex: 1;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .mockup-body {
+      display: flex;
+      min-height: 480px;
+      background: #0b0f19;
+    }
+    .mockup-sidebar {
+      width: 76px;
+      background: #0f1629;
+      border-right: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      gap: 16px;
+    }
+    .mockup-icon-btn {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      transition: all 0.2s;
+    }
+    .mockup-icon-btn.active {
+      background: rgba(99, 102, 241, 0.25);
+      border: 1px solid rgba(99, 102, 241, 0.5);
+    }
+    .mockup-icon-btn img {
+      width: 24px;
+      height: 24px;
+    }
+    .mockup-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: var(--red);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 999px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    }
+    .mockup-bottom-tools {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+    .mockup-preview-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #0d121f;
+      padding: 28px;
+    }
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 24px;
+    }
+    .preview-service-tag {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+    .preview-service-tag img {
+      width: 26px;
+      height: 26px;
+    }
+    .preview-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .sim-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    .sim-card h4 {
+      font-size: 0.95rem;
+      color: var(--accent-secondary);
+      margin-bottom: 8px;
+    }
+    .sim-card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Section Headers */
+    .section-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+    .section-header h2 {
+      font-size: clamp(2rem, 3.5vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+    }
+    .section-header p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 120px;
+    }
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 32px 28px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card:hover {
+      background: var(--card-hover);
+      border-color: rgba(129, 140, 248, 0.3);
+      transform: translateY(-4px);
+    }
+    .feature-icon-wrapper {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      margin-bottom: 20px;
+    }
+    .feature-card h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.65;
+    }
+
+    /* Supported Apps Banner */
+    .apps-section {
+      background: rgba(22, 29, 47, 0.4);
+      border-top: 1px solid var(--card-border);
+      border-bottom: 1px solid var(--card-border);
+      padding: 60px 0;
+      margin-bottom: 100px;
+    }
+    .apps-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 40px;
+      margin-top: 36px;
+    }
+    .app-badge-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 12px 22px;
+      border-radius: 999px;
+      border: 1px solid var(--card-border);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .app-badge-item img {
+      width: 24px;
+      height: 24px;
+    }
+
+    /* Installation Section */
+    .install-box {
+      background: #0f1629;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 36px;
+      margin-bottom: 120px;
+    }
+    .tabs-header {
+      display: flex;
+      gap: 16px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: rgba(99, 102, 241, 0.2);
+      color: var(--text-main);
+    }
+    .code-block {
+      background: #070a12;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.92rem;
+      color: #38bdf8;
+      overflow-x: auto;
+      line-height: 1.7;
+    }
+    .code-comment {
+      color: var(--text-dim);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 40px 0;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.9rem;
+    }
+    footer a {
+      color: var(--accent-secondary);
+      text-decoration: none;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+      .mockup-sidebar {
+        width: 60px;
+      }
+      .mockup-preview-content {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="container nav-wrapper">
+      <a href="#" class="logo">
+        <img src="assets/icon.svg" alt="Deskbox Logo">
+        <span>Deskbox</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Funzionalità</a>
+        <a href="#services">Servizi</a>
+        <a href="#install">Installazione</a>
+        <a href="https://github.com/webgrafia/deskbox" target="_blank" class="btn-github">
+          <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero container">
+    <div class="badge-pill">
+      <span class="pulse-dot"></span>
+      100% Open Source • Supporto Linux & macOS
+    </div>
+    <h1>Il tuo spazio di lavoro unificato.<br>Veloce, snello, privato.</h1>
+    <p>
+      L'alternativa moderna e leggera a Ferdium e Rambox. Unisci Gmail, Google Calendar, Google Antigravity, Android Messages, WhatsApp e Telegram in una sola app desktop elegante.
+    </p>
+    <div class="cta-buttons">
+      <a href="#install" class="btn-primary">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Scarica o Installa
+      </a>
+      <a href="https://github.com/webgrafia/deskbox" target="_blank" class="btn-secondary">
+        Esplora su GitHub ↗
+      </a>
+    </div>
+
+    <!-- Realistic Window Mockup -->
+    <div class="mockup-container">
+      <div class="mockup-header">
+        <div class="traffic-lights">
+          <span class="light red"></span>
+          <span class="light yellow"></span>
+          <span class="light green"></span>
+        </div>
+        <div class="mockup-title">Deskbox — Productivity Workspace</div>
+      </div>
+      <div class="mockup-body">
+        <!-- Sidebar -->
+        <div class="mockup-sidebar">
+          <div class="mockup-icon-btn active" title="Gmail">
+            <img src="assets/gmail.svg" alt="Gmail">
+            <span class="mockup-badge">3</span>
+          </div>
+          <div class="mockup-icon-btn" title="Calendar">
+            <img src="assets/calendar.svg" alt="Calendar">
+          </div>
+          <div class="mockup-icon-btn" title="Google Antigravity">
+            <img src="assets/antigravity.svg" alt="Antigravity">
+          </div>
+          <div class="mockup-icon-btn" title="Google Messages SMS">
+            <img src="assets/messages.svg" alt="Messages">
+          </div>
+          <div class="mockup-icon-btn" title="WhatsApp Web">
+            <img src="assets/whatsapp.svg" alt="WhatsApp">
+            <span class="mockup-badge">1</span>
+          </div>
+          <div class="mockup-icon-btn" title="Telegram Web">
+            <img src="assets/telegram.svg" alt="Telegram">
+          </div>
+          
+          <div class="mockup-bottom-tools">
+            <div class="mockup-icon-btn" title="Calcolatrice">
+              <span style="font-size: 1.2rem;">🧮</span>
+            </div>
+            <div class="mockup-icon-btn" title="Google Sync Bridge">
+              <img src="assets/google-g.svg" alt="Google Sync">
+            </div>
+            <div class="mockup-icon-btn" title="Impostazioni">
+              <span style="font-size: 1.1rem; color: #94a3b8;">⚙️</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulated Active View -->
+        <div class="mockup-preview-content">
+          <div class="preview-header">
+            <div class="preview-service-tag">
+              <img src="assets/gmail.svg" alt="Gmail">
+              <span>Gmail Workspace</span>
+            </div>
+            <div style="font-size: 0.85rem; color: #10b981; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+              Sessione Condivisa Attiva
+            </div>
+          </div>
+
+          <div class="preview-cards">
+            <div class="sim-card">
+              <h4>📧 Notifiche Istantanee</h4>
+              <p>Tracciamento preciso dei messaggi non letti senza appesantire la CPU.</p>
+            </div>
+            <div class="sim-card">
+              <h4>🔒 Login Google Unificato</h4>
+              <p>Accedi una volta sola e sblocca Gmail, Calendar, Antigravity e Messaggi SMS.</p>
+            </div>
+            <div class="sim-card">
+              <h4>⚡ Scorciatoie da Tastiera</h4>
+              <p>Passa da una scheda all'altra con <code>Ctrl+1</code>, <code>Ctrl+2</code>, ...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Supported Services Banner -->
+  <section class="apps-section" id="services">
+    <div class="container">
+      <div class="section-header" style="margin-bottom: 20px;">
+        <h2>I Tuoi Servizi Quotidiani</h2>
+        <p>Tutti i tuoi canali di comunicazione e pianificazione integrati armoniosamente.</p>
+      </div>
+      <div class="apps-row">
+        <div class="app-badge-item">
+          <img src="assets/gmail.svg" alt="Gmail">
+          <span>Gmail</span>
+        </div>
+        <div class="app-badge-item">
+          <img src="assets/calendar.svg" alt="Google Calendar">
+          <span>Google Calendar</span>
+        </div>
+        <div class="app-badge-item">
+          <img src="assets/antigravity.svg" alt="Google Antigravity">
+          <span>Google Antigravity</span>
+        </div>
+        <div class="app-badge-item">
+          <img src="assets/messages.svg" alt="Messages">
+          <span>Android Messages SMS</span>
+        </div>
+        <div class="app-badge-item">
+          <img src="assets/whatsapp.svg" alt="WhatsApp">
+          <span>WhatsApp Web</span>
+        </div>
+        <div class="app-badge-item">
+          <img src="assets/telegram.svg" alt="Telegram">
+          <span>Telegram Web</span>
+        </div>
+        <div class="app-badge-item">
+          <span style="font-size: 1.2rem;">➕</span>
+          <span>Web App Personalizzate</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="container" id="features">
+    <div class="section-header">
+      <h2>Caratteristiche Principali</h2>
+      <p>Progettato per chi esige ordine, velocità e zero distrazioni.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">🔑</div>
+        <h3>Google Session Bridge</h3>
+        <p>Bypassa l'errore "Browser non sicuro" imposto da Google negli ambienti Electron attraverso un pratico wizard di sincronizzazione con Firefox. Login unificato per tutte le Google Apps.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">🔔</div>
+        <h3>Badge Numerici Intelligenti</h3>
+        <p>Contatori delle notifiche precisi e puliti sia sulle schede laterali che nell'icona nella barra di sistema (System Tray), per non perdere mai una mail o un messaggio urgente.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">🌐</div>
+        <h3>Apertura Link nel Browser</h3>
+        <p>Tutti i link esterni cliccati nelle tue email o nei messaggi di chat vengono aperti automaticamente nel tuo browser predefinito di sistema (Chrome, Firefox, Brave, ecc.).</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">🧮</div>
+        <h3>Mini Calcolatrice Integrata</h3>
+        <p>Fai calcoli al volo senza dover aprire app separate o calcolatrici esterne. Sempre a portata di clic con un'interfaccia a cassetto pulita e funzionale.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">⚙️</div>
+        <h3>Totale Personalizzazione</h3>
+        <p>Attiva o disattiva i servizi, riordinali con semplici frecce Su/Giù e aggiungi qualsiasi web app aziendale o personale (Slack, Notion, Discord, ecc.).</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-wrapper">🍏</div>
+        <h3>Pronto per Linux & macOS</h3>
+        <p>Eseguibile come app desktop nativa su Ubuntu, Debian, Fedora e su macOS sia con processori Intel che con i moderni chip Apple Silicon (M1, M2, M3, M4).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Installation / Download -->
+  <section class="container" id="install">
+    <div class="section-header">
+      <h2>Installazione Rapida</h2>
+      <p>Scegli la tua piattaforma preferita e inizia a usare Deskbox in 2 minuti.</p>
+    </div>
+
+    <div class="install-box">
+      <div class="tabs-header">
+        <button class="tab-btn active" onclick="showTab('linux')">🐧 Linux (Ubuntu / Debian / Fedora)</button>
+        <button class="tab-btn" onclick="showTab('mac')">🍏 macOS (Apple Silicon & Intel)</button>
+      </div>
+
+      <div id="tab-linux">
+        <p style="color: var(--text-muted); margin-bottom: 16px;">
+          Clona il repository ed esegui lo script di installazione per integrare Deskbox nel menù applicazioni di Ubuntu:
+        </p>
+        <div class="code-block">
+<span class="code-comment"># 1. Clona il repository</span>
+git clone https://github.com/webgrafia/deskbox.git
+cd deskbox
+
+<span class="code-comment"># 2. Installa le dipendenze</span>
+npm install
+
+<span class="code-comment"># 3. Integra nel launcher desktop di Ubuntu con l'icona ufficiale</span>
+./scripts/install-desktop.sh
+
+<span class="code-comment"># 4. Avvia Deskbox</span>
+npm start
+        </div>
+      </div>
+
+      <div id="tab-mac" style="display: none;">
+        <p style="color: var(--text-muted); margin-bottom: 16px;">
+          Puoi compilare direttamente il pacchetto nativo per macOS o scaricare lo ZIP generato:
+        </p>
+        <div class="code-block">
+<span class="code-comment"># Compila pacchetto per Apple Silicon (M1/M2/M3/M4):</span>
+npx electron-builder --mac zip --arm64
+
+<span class="code-comment"># Compila pacchetto per Mac Intel:</span>
+npx electron-builder --mac zip --x64
+
+<span class="code-comment"># Installazione per utente Mac:</span>
+1. Estrai lo ZIP per ottenere Deskbox.app
+2. Trascina Deskbox.app nella cartella Applicazioni
+3. Al primo avvio: tasto destro sull'icona -> Apri (oppure Impostazioni -> Privacy e sicurezza -> Apri comunque)
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>
+        <strong>Deskbox</strong> è un progetto open source distribuito con licenza <a href="https://github.com/webgrafia/deskbox/blob/main/LICENSE" target="_blank">MIT</a>.
+      </p>
+      <p style="margin-top: 8px;">
+        Creato con cura da <a href="https://github.com/webgrafia" target="_blank">webgrafia</a>.
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    function showTab(platform) {
+      const tabs = document.querySelectorAll('.tab-btn');
+      tabs.forEach(t => t.classList.remove('active'));
+      if (platform === 'linux') {
+        tabs[0].classList.add('active');
+        document.getElementById('tab-linux').style.display = 'block';
+        document.getElementById('tab-mac').style.display = 'none';
+      } else {
+        tabs[1].classList.add('active');
+        document.getElementById('tab-linux').style.display = 'none';
+        document.getElementById('tab-mac').style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

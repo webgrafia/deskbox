@@ -1,13 +1,23 @@
 # Deskbox 🚀
 
-A modern, ultra-lightweight, and customizable workspace application for Linux/Ubuntu, designed as a fast alternative to Rambox and Ferdium.
-Deskbox groups your daily productivity and communication web apps into a single organized interface:
+<p align="center">
+  <img src="src/ui/assets/icon.svg" alt="Deskbox Logo" width="120" height="120">
+  <br>
+  <b>A modern, ultra-lightweight, and customizable workspace application for Linux and macOS.</b>
+  <br>
+  <i>A fast, clean alternative to Rambox and Ferdium.</i>
+  <br><br>
+  <a href="https://webgrafia.github.io/deskbox/">🌐 <b>Visita il sito web di presentazione / Landing Page</b></a>
+</p>
+
+Deskbox groups your daily productivity and communication web apps into a single organized, distraction-free interface:
 - **Gmail**
 - **Google Calendar**
 - **Google Antigravity** (`https://antigravity.google.com/`)
 - **Android Messages / Google Messages SMS** (`https://messages.google.com/web`)
 - **WhatsApp Web**
 - **Telegram Web**
+- **Built-in Mini Calculator Utility**
 - *Any custom web app you want to add!*
 
 ---
@@ -19,9 +29,11 @@ Deskbox groups your daily productivity and communication web apps into a single 
 - **Settings & Service Reordering**: An integrated Settings Panel (`Ctrl+,`) lets you enable/disable services, reorder them with Up/Down controls, or add custom web apps. Preferences are automatically persisted across launches.
 - **Shared Google Session**: Log in once and automatically stay authenticated across Gmail, Google Calendar, Google Antigravity, and Android Messages.
 - **Google Auth Bridge**: Bypasses embedded OAuth restrictions ("This browser or app may not be secure") with a convenient 2-step sync wizard via Firefox.
-- **System Tray (Background Execution)**: Closing the window minimizes Deskbox to the Ubuntu system tray with unread notification indicators.
-- **External Links in Default Browser**: Links clicked inside messages and emails automatically open in your default browser (Chrome, Firefox, etc.).
+- **Built-in Utilities**: Quick-access popup calculator in the sidebar for calculations on the fly.
+- **System Tray (Background Execution)**: Closing the window minimizes Deskbox to the system tray with unread notification indicators.
+- **External Links in Default Browser**: Links clicked inside messages and emails automatically open in your default browser (Chrome, Firefox, Brave, etc.).
 - **Hardware & Media Permissions**: Voice notes and camera permissions for WhatsApp and Telegram work out-of-the-box.
+- **Cross-Platform Ready**: Run natively on Linux (Ubuntu, Debian, Fedora, Arch) and macOS (Apple Silicon M1-M4 & Intel).
 
 ---
 
@@ -88,6 +100,21 @@ Because Google actively blocks credential input in embedded Electron webviews:
 | `Ctrl + G` | Open Google Sign-In & Sync modal |
 | `Ctrl + ,` | Open Settings & Manage Services panel |
 | `Escape` | Close active modal dialog |
+
+---
+
+## 🍏 Building for macOS
+
+Deskbox can be packaged directly for macOS (even from Ubuntu/Linux):
+
+```bash
+# Package for Apple Silicon (M1/M2/M3/M4):
+npm run build:mac -- --arm64
+
+# Package for Intel Mac:
+npm run build:mac -- --x64
+```
+The output `.zip` containing `Deskbox.app` is placed in `dist/`.
 
 ---
 
