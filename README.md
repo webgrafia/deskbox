@@ -7,7 +7,7 @@
   <br>
   <i>A fast, clean alternative to Rambox and Ferdium.</i>
   <br><br>
-  <a href="https://webgrafia.github.io/deskbox/">🌐 <b>Visita il sito web di presentazione / Landing Page</b></a>
+  <a href="https://webgrafia.github.io/deskbox/">🌐 <b>Visit Project Website & Live Showcase</b></a>
 </p>
 
 Deskbox groups your daily productivity and communication web apps into a single organized, distraction-free interface:
